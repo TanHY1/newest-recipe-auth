@@ -32,7 +32,7 @@ export const useAuthStore = create((set) => ({
             const response = await axios.post(`/api/auth/signup`, { email, password, name });
             set ({ user: response.data.user, isAuthenticated: true, isLoading: false });
         } catch (error) {
-            set({ error: error.message.data.message || "Error signing up", isLoading: false });
+            set({ error: error?.response?.data?.message || "Error signing up", isLoading: false });
             throw error;
         }
     },

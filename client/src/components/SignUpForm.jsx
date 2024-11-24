@@ -7,6 +7,7 @@ import {
   Input,
   FormErrorMessage,
   Button,
+  useToast,
 } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -28,7 +29,8 @@ const SignUpForm = ({ onClose, switchToLogin }) => {
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
   const navigate = useNavigate();
-  const { signup, error: authError } = useAuthStore();
+  const toast = useToast();
+  const { signup, error: authError, resetError } = useAuthStore();
 
   const validateFields = () => {
     const errorHandling = {};
@@ -59,23 +61,58 @@ const SignUpForm = ({ onClose, switchToLogin }) => {
     const errors = validateFields();
 
     if (Object.keys(errors).length > 0) {
+      toast({ 
+        title: "Please fill in all the fields", 
+        status: "error", 
+        duration: 4000, 
+        isClosable: true 
+      });
       return;
     }
 
     try {
       await signup(email, password, name);
+      toast({
+        position: "top",
+        title: "Sign-up successful",
+        description: "Please verify your email to complete registration.",
+        status: "success",
+        duration: 4000,
+        isClosable: true,
+      });
       navigate("/verify-email");
       onClose();
     } catch (signupError) {
-      console.error("Sign-up error:", signupError);
+      const errorMessage = signupError?.response?.data?.message || "Something went wrong, please try again later";
+      toast ({
+        position: "bottom",
+        title: "Error signing up",
+        description: errorMessage,
+        status: "error",
+        duration: 4000,
+        isClosable: true,
+      });
+
+      clearForm();
     }
   };
 
+  const clearForm = () => {
+    setName("");
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
+    setLocalError({});
+  };
+
   useEffect(() => {
-    if (hasSubmitted) {
-      validateFields();
-    }
-  }, [name, email, password, confirmPassword, hasSubmitted]);
+    if (hasSubmitted) validateFields();
+    return () => {
+      if (resetError) {
+        resetError();
+      }
+    };
+  }, [name, email, password, confirmPassword, hasSubmitted, resetError]);
 
   return (
     <Box position="relative" mt="120px" p="4" zIndex="2">
