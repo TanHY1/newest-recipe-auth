@@ -98,5 +98,35 @@ export const useAuthStore = create((set) => ({
             });
             throw error;
         }
-    }
+    },
+
+    setUser: (user) => { //Add function to update user state
+        set({ user });
+    },
+
+    uploadProfilePicture: async (file) => {
+        try {
+            const formData = new FormData();
+            formData.append('profilePicture', file);
+
+            const response = await axios.post('/api/auth/upload-profile-picture', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                },
+                withCredentials: true
+            });
+
+            set((state) => ({
+                user: {
+                    ...state.user,
+                    profilePicture: response.data.filename,
+                }
+            }));
+
+            return response.data;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || "Error uploading profile picture";
+            throw new Error(errorMessage);
+        }
+    },
 }));

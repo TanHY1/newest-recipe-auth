@@ -115,7 +115,12 @@ const SignUpForm = ({ onClose, switchToLogin }) => {
   }, [name, email, password, confirmPassword, hasSubmitted, resetError]);
 
   return (
-    <Box position="relative" mt="120px" p="4" zIndex="2">
+    <Box 
+      position="relative" 
+      mt="120px" 
+      p="4" 
+      zIndex="2"
+    >
           <MotionImage
             as="img"
             src={cookbook}

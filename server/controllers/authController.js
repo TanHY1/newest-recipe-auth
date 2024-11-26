@@ -4,8 +4,40 @@ import crypto from "crypto";
 import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookie.js";
 import { sendVerificationEmail, sendWelcomeEmail, sendResetPasswordEmail, sendResetSuccessEmail } from "../mailtrap/emails.js";
 import dotenv from "dotenv";
+import multer from "multer";
+import path from "path";
 
 dotenv.config();
+
+//Configure multer storage
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/'); //Save uploaded files in the uploads folder
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${Date.now()}_${file.originalname}`); //Generate a unique filename for the uploaded file
+    }
+});
+
+//File filter to check file type
+const fileFilter = (req, file, cb) => {
+    const fileTypes = /jpeg|jpg|png|gif/;
+    const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = fileTypes.test(file.mimetype);
+
+    if (extname && mimetype) {
+        return cb(null, true);
+    } else {
+        cb("Error: Images only"); //Reject file if it is not an image
+    }
+};
+
+//Initialize multer with storage and file filter
+const upload = multer({ 
+    storage: storage,
+    limits: {fileSize: 10 * 1024 * 1024}, //Limit file size = 10MB
+    fileFilter: fileFilter 
+}).single('profilePicture');
 
 export const signup = async (req, res) => {
     const {email, password, name} = req.body;
@@ -117,6 +149,36 @@ export const login = async (req, res) => {
         console.log("Failed to login", error.message);
         res.status(400).json({ success: false, message: error.message });
     }
+};
+
+export const uploadProfilePicture = async (req, res) => {
+    upload(req, res, async function (err) {
+        if (err) {
+            return res.status(400).json({ success: false, message: err });
+        }
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: "No file uploaded" });
+        }
+
+        try {
+            const user = User.findById(req.userId);
+            if (!user) {
+                return res.status(400).json({ success: false, message: "User not found" });
+            }
+
+            //Update the profile picture
+            user.profilePicture = req.file.filename;
+            await user.save();
+
+            res.status(200).json({
+                success: true,
+                message: "Profile picture uploaded successfully",
+                filename: req.file.filename
+            });
+        } catch (error) {
+            res.status(400).json({ success: false, message: error.message });
+        }
+    });
 };
 
 export const logout = async (req, res) => {
